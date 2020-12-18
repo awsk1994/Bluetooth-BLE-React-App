@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { StyleSheet, View, Text, Button, FlatList, ToastAndroid, ScrollView, TouchableOpacity } from 'react-native';
+import { TextInput, Alert, StyleSheet, View, List, Text, Button, FlatList, ToastAndroid, ScrollView, TouchableOpacity } from 'react-native';
 
 import { BleManager } from 'react-native-ble-plx';
 
@@ -10,10 +10,13 @@ class App extends Component {
       devices: [],
       status: null,
       scanning: false,
-      // bleState: 'Off'
+      services: [],
+      characteristics: [],
+      characteristic: null,
+      readValue: null,
+      writeValue: null
     };
     const manager = this.bleManager = new BleManager();
-    // this.setState({bleState: 'On'});
   };
 
   componentWillUnmount() {
@@ -49,8 +52,8 @@ class App extends Component {
     this.setState({ scanning: false })
   };
 
-  debugDevices = () => {
-    console.log(this.state.devices);
+  debugState = () => {
+    console.log(this.state);
   }
 
   resetDevices = () => {
@@ -58,46 +61,122 @@ class App extends Component {
   }
 
   connectDevice = async (device) => {
-    this.stopScan() // Stop Scanning
-    ToastAndroid.show("Connecting to Device...", ToastAndroid.SHORT);
-
-    await device.connect()
-    console.log('Connected to Device：', device.id)
-    await device.discoverAllServicesAndCharacteristics()
-    console.log('Getting services and characteristics...')
-
-    Alert.alert('Connected to Device', null, [
-      { text: 'Cancel' },
-      { text: "Enter", onPress: () => navigation.push('Device') }
-    ]);
+    try{
+      this.stopScan() // Stop Scanning
+      ToastAndroid.show("Connecting to Device...", ToastAndroid.SHORT);
+      console.group("Connecting to Device.");
+      await device.connect();
+      console.log('Connected to Device：', device.id)
+      let serviceAndChar = await device.discoverAllServicesAndCharacteristics();
+      console.log('Getting services and characteristics...');
+      console.log(serviceAndChar);
+  
+      Alert.alert('Connected to Device', null, [
+        { text: 'Cancel' },
+        { text: "Enter", onPress: () => this.onPressDevice(device)}
+      ]);
+    } catch(err){
+      console.log("ERROR");
+      console.log(err);
+    }
   };
 
-  writeToDevice = () => {
-    this.bleManager.writeCharacteristicWithResponseForDevice()
+  onPressDevice = async (device) => {
+    let services = await device.services();
+    this.setState({services});
+  };
+
+  onPressService = async(service) => {
+    let characteristics = await service.characteristics()
+    this.setState({characteristics});
+  };
+
+  onPressCharacteristic = async(characteristic) => {
+    console.log("onPressCharacteristic")
+    this.setState({characteristic});
   }
+
+  onPressReadOp = async() => {
+    console.log("onPressReadOp");
+    try{
+      let char = await this.state.characteristic.read();
+      console.log("Characteristics Read Value: " + char.value);
+      this.setState({readValue: char.value});
+    } catch(err){
+      console.log("ERROR:");
+      console.log(err);
+    }
+  };
+
+  onPressWriteOp = () => {
+    console.log("TODO!!!");
+  };
+
+  // writeToDevice = () => {
+  //   this.bleManager.writeCharacteristicWithResponseForDevice()
+  // }
 
   render() {
     return (
-      <ScrollView>
-        <Text>BLE</Text>
-        <Text>Scanning: {this.state.scanning.toString()}</Text>
-        <Button title="Scan Devices" onPress={this.scanDevices}/>
-        <Button title="Stop Scan" onPress={this.stopScan}/>
-        <Button title="Debug Devices" onPress={this.debugDevices}/>
-        <Button title="Reset Devices" onPress={this.resetDevices}/>
-        <FlatList 
-          keyExtractor={(item, index) => index.toString()}
-          data={this.state.devices}
-          renderItem={itemData => (
-          <TouchableOpacity onPress = {() => {this.connectDevice(itemData.item)}}>
-            <View style={styles.card}>
-              <Text>{itemData.item.id}</Text>
-              <Text>({itemData.item.name})</Text>
-            </View>
-          </TouchableOpacity>
-          )}
-        />
-      </ScrollView>
+      <View>
+        <ScrollView>
+          <Text>BLE</Text>
+          <Text>Scanning: {this.state.scanning.toString()}</Text>
+          <Button title="Scan Devices" onPress={this.scanDevices}/>
+          <Button title="Stop Scan" onPress={this.stopScan}/>
+          <Button title="Debug State" onPress={this.debugState}/>
+          <Button title="Reset Devices" onPress={this.resetDevices}/>
+          <FlatList 
+            keyExtractor={(item, index) => index.toString()}
+            data={this.state.devices}
+            renderItem={itemData => (
+            <TouchableOpacity onPress = {() => {this.connectDevice(itemData.item)}}>
+              <View style={styles.card}>
+                <Text>{itemData.item.id}</Text>
+                <Text>({itemData.item.name || itemData.item.localName})</Text>
+                <Text>(serviceUUIDs = {itemData.item.serviceUUIDs})</Text>
+                {/* <Text>(isConnectable = {itemData.item.isConnectable ? })</Text> */}
+              </View>
+            </TouchableOpacity>
+            )}
+          />
+          <Text h1>SERVICES:</Text>
+          <FlatList 
+            keyExtractor={(item, index) => index.toString()}
+            data={this.state.services}
+            renderItem={itemData => (
+            <TouchableOpacity onPress = {() => {this.onPressService(itemData.item)}}>
+              <View style={styles.card}>
+                <Text>{`UUID: ${itemData.item.uuid}`}</Text>
+              </View>
+            </TouchableOpacity>
+            )}
+          />
+          <Text h1>CHARACTERISTICS:</Text>
+          <FlatList 
+            keyExtractor={(item, index) => index.toString()}
+            data={this.state.characteristics}
+            renderItem={itemData => (
+            <TouchableOpacity onPress = {() => {this.onPressCharacteristic(itemData.item)}}>
+              <View style={styles.card}>
+                <Text>{`UUID: ${itemData.item.uuid}`}</Text>
+              </View>
+            </TouchableOpacity>
+            )}
+          />
+          <Text h1>OPERATIONS:</Text>
+          {/* <Text>{this.state.characteristic.uuid}</Text> */}
+          <Button type="primary" style={{ marginTop: 8 }} onPress={this.onPressReadOp} title="读取特征值"/>
+          <TextInput
+              style={styles.input}
+              placeholder="请输入特征值（十六进制字符串）"
+              value={this.state.writeValue}
+              onChangeText={v => this.setState({ writeValue: v })}
+            />
+          <Button type="primary" onPress={this.onPressWriteOp} title="写入特征值"/>
+        </ScrollView>
+
+      </View>
     );
   }
 };
@@ -107,8 +186,10 @@ const styles = StyleSheet.create({
     marginTop: 5,
     marginBottom: 5,
     borderColor: 'black',
-    borderWidth: 1,
-    height: 40
+    borderWidth: 1
+  },
+  input: {
+    height: 20
   }
 });
 
