@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { View, Text, Button, FlatList } from 'react-native';
+import { StyleSheet, View, Text, Button, FlatList, ToastAndroid, ScrollView, TouchableOpacity } from 'react-native';
 
 import { BleManager } from 'react-native-ble-plx';
 
@@ -7,79 +7,109 @@ class App extends Component {
   constructor() {
     super();
     this.state = {
-      manager: new BleManager(),
-      devices: new Set(),
-      uniqueDevices: [],
-      status: "None"
+      devices: [],
+      status: null,
+      scanning: false,
+      // bleState: 'Off'
+    };
+    const manager = this.bleManager = new BleManager();
+    // this.setState({bleState: 'On'});
+  };
+
+  componentWillUnmount() {
+    console.log("ComponentUnMount");  // TODO: Getting error. Unable to detect when bleManager is undefined...
+    if(this.bleManager != null || typeof this.bleManager != "undefined"){
+      this.bleManager.destroy();
     }
+  }
+
+  scanDevices = async () => {
+    console.log("Scanning Devices");
+    this.setState({scanning: true});
+    this.bleManager.startDeviceScan(null, {allowDuplicates: false}, this.onScannedDevice);
   };
 
-  componentDidMount() {
-    const subscription = this.state.manager.onStateChange((state) => {
-        if (state === 'PoweredOn') {
-          this.scanAndConnect();
-          subscription.remove();
-        }
-    }, true);
+  onScannedDevice = (error, device) => {
+    // console.log("onScannedDevice");
+    if (error) {
+      console.log("ERROR:");
+      console.log(error);
+      return
+    }
+    
+    if (this.state.devices.findIndex(item => item.id === device.id) < 0) {
+      this.setState({
+        devices: [...this.state.devices, device]
+      })
+    };
   };
 
-  scanAndConnect = async () => {
-    console.log("scanAndConnecting");
-    this.state.manager.stopDeviceScan()
-    this.state.manager.startDeviceScan(null, {allowDuplicates: false}, (error, device) => {
-      this.setState({status: "Scanning"});
-
-      if (error) {
-        console.log("ERROR:");
-        console.log(error);
-        return
-      }
-      
-      if(device.name != null){  
-        let devices2 = new Set(this.state.devices).add(device.name);
-        let uniqueDevices2 = Array.from(devices2);
-        this.setState({
-          devices: devices2,
-          uniqueDevices: uniqueDevices2
-        });
-      }
-    });
-    console.log("scannedAndConnected");
-  };
-  
   stopScan = () => {
-    this.setState({status: "Stopping"});
-    this.state.manager.stopDeviceScan();
-    this.setState({status: "Stopped"});
+    this.bleManager.stopDeviceScan()
+    this.setState({ scanning: false })
   };
 
-  listDevices = () => {
+  debugDevices = () => {
     console.log(this.state.devices);
   }
 
   resetDevices = () => {
-    this.setState({status: "Resetting"});
-    this.setState({devices: new Set(), uniqueDevices: []})
-    this.setState({status: "Resetted"});
+    this.setState({devices: []});
+  }
+
+  connectDevice = async (device) => {
+    this.stopScan() // Stop Scanning
+    ToastAndroid.show("Connecting to Device...", ToastAndroid.SHORT);
+
+    await device.connect()
+    console.log('Connected to Device：', device.id)
+    await device.discoverAllServicesAndCharacteristics()
+    console.log('Getting services and characteristics...')
+
+    Alert.alert('Connected to Device', null, [
+      { text: 'Cancel' },
+      { text: "Enter", onPress: () => navigation.push('Device') }
+    ]);
+  };
+
+  writeToDevice = () => {
+    this.bleManager.writeCharacteristicWithResponseForDevice()
   }
 
   render() {
     return (
-      <View>
+      <ScrollView>
         <Text>BLE</Text>
-        <Text>{this.state.status}</Text>
-        <Button title="Scan and Connect" onPress={this.scanAndConnect}/>
+        <Text>Scanning: {this.state.scanning.toString()}</Text>
+        <Button title="Scan Devices" onPress={this.scanDevices}/>
         <Button title="Stop Scan" onPress={this.stopScan}/>
-        <Button title="List Devices" onPress={this.listDevices}/>
+        <Button title="Debug Devices" onPress={this.debugDevices}/>
         <Button title="Reset Devices" onPress={this.resetDevices}/>
         <FlatList 
-          keyExtractor={(item, index) => item}
-          data={this.state.uniqueDevices}
-          renderItem={itemData => <Text>{itemData.item}</Text>}
+          keyExtractor={(item, index) => index.toString()}
+          data={this.state.devices}
+          renderItem={itemData => (
+          <TouchableOpacity onPress = {() => {this.connectDevice(itemData.item)}}>
+            <View style={styles.card}>
+              <Text>{itemData.item.id}</Text>
+              <Text>({itemData.item.name})</Text>
+            </View>
+          </TouchableOpacity>
+          )}
         />
-      </View>
+      </ScrollView>
     );
   }
-}
+};
+
+const styles = StyleSheet.create({
+  card: {
+    marginTop: 5,
+    marginBottom: 5,
+    borderColor: 'black',
+    borderWidth: 1,
+    height: 40
+  }
+});
 
 export default App;
