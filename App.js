@@ -9,7 +9,7 @@ class App extends Component {
     this.state = {
       manager: new BleManager(),
       devices: new Set(),
-      displayDevices: [],
+      uniqueDevices: [],
       status: "None"
     }
   };
@@ -36,14 +36,11 @@ class App extends Component {
       }
       
       if(device.name != null){  
-        // console.log(this.state.devices);
-        // let devices2 = this.state.devices.add(device.name);
         let devices2 = new Set(this.state.devices).add(device.name);
-
         let uniqueDevices2 = Array.from(devices2);
         this.setState({
           devices: devices2,
-          displayDevices: uniqueDevices2
+          uniqueDevices: uniqueDevices2
         });
       }
     });
@@ -62,7 +59,7 @@ class App extends Component {
 
   resetDevices = () => {
     this.setState({status: "Resetting"});
-    this.setState({devices: new Set(), displayDevices: []})
+    this.setState({devices: new Set(), uniqueDevices: []})
     this.setState({status: "Resetted"});
   }
 
@@ -77,7 +74,7 @@ class App extends Component {
         <Button title="Reset Devices" onPress={this.resetDevices}/>
         <FlatList 
           keyExtractor={(item, index) => item}
-          data={this.state.displayDevices}
+          data={this.state.uniqueDevices}
           renderItem={itemData => <Text>{itemData.item}</Text>}
         />
       </View>

@@ -1,3 +1,6 @@
+# Intro
+Using https://github.com/Polidea/react-native-ble-plx
+
 # Log
 ## 12/28/2020
 ### Ways to fix BleError: Cannot start scanning operation:
