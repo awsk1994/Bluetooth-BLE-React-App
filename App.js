@@ -1,114 +1,88 @@
-/**
- * Sample React Native App
- * https://github.com/facebook/react-native
- *
- * @format
- * @flow strict-local
- */
+import React, { Component } from 'react';
+import { View, Text, Button, FlatList } from 'react-native';
 
-import React from 'react';
-import {
-  SafeAreaView,
-  StyleSheet,
-  ScrollView,
-  View,
-  Text,
-  StatusBar,
-} from 'react-native';
+import { BleManager } from 'react-native-ble-plx';
 
-import {
-  Header,
-  LearnMoreLinks,
-  Colors,
-  DebugInstructions,
-  ReloadInstructions,
-} from 'react-native/Libraries/NewAppScreen';
+class App extends Component {
+  constructor() {
+    super();
+    this.state = {
+      manager: new BleManager(),
+      devices: new Set(),
+      displayDevices: [],
+      status: "None"
+    }
+  };
 
-const App: () => React$Node = () => {
-  return (
-    <>
-      <StatusBar barStyle="dark-content" />
-      <SafeAreaView>
-        <ScrollView
-          contentInsetAdjustmentBehavior="automatic"
-          style={styles.scrollView}>
-          <Header />
-          {global.HermesInternal == null ? null : (
-            <View style={styles.engine}>
-              <Text style={styles.footer}>Engine: Hermes</Text>
-            </View>
-          )}
-          <View style={styles.body}>
-            <View style={styles.sectionContainer}>
-              <Text style={styles.sectionTitle}>Step One</Text>
-              <Text style={styles.sectionDescription}>
-                Edit <Text style={styles.highlight}>App.js</Text> to change this
-                screen and then come back to see your edits.
-              </Text>
-            </View>
-            <View style={styles.sectionContainer}>
-              <Text style={styles.sectionTitle}>See Your Changes</Text>
-              <Text style={styles.sectionDescription}>
-                <ReloadInstructions />
-              </Text>
-            </View>
-            <View style={styles.sectionContainer}>
-              <Text style={styles.sectionTitle}>Debug</Text>
-              <Text style={styles.sectionDescription}>
-                <DebugInstructions />
-              </Text>
-            </View>
-            <View style={styles.sectionContainer}>
-              <Text style={styles.sectionTitle}>Learn More</Text>
-              <Text style={styles.sectionDescription}>
-                Read the docs to discover what to do next:
-              </Text>
-            </View>
-            <LearnMoreLinks />
-          </View>
-        </ScrollView>
-      </SafeAreaView>
-    </>
-  );
-};
+  componentDidMount() {
+    const subscription = this.state.manager.onStateChange((state) => {
+        if (state === 'PoweredOn') {
+          this.scanAndConnect();
+          subscription.remove();
+        }
+    }, true);
+  };
 
-const styles = StyleSheet.create({
-  scrollView: {
-    backgroundColor: Colors.lighter,
-  },
-  engine: {
-    position: 'absolute',
-    right: 0,
-  },
-  body: {
-    backgroundColor: Colors.white,
-  },
-  sectionContainer: {
-    marginTop: 32,
-    paddingHorizontal: 24,
-  },
-  sectionTitle: {
-    fontSize: 24,
-    fontWeight: '600',
-    color: Colors.black,
-  },
-  sectionDescription: {
-    marginTop: 8,
-    fontSize: 18,
-    fontWeight: '400',
-    color: Colors.dark,
-  },
-  highlight: {
-    fontWeight: '700',
-  },
-  footer: {
-    color: Colors.dark,
-    fontSize: 12,
-    fontWeight: '600',
-    padding: 4,
-    paddingRight: 12,
-    textAlign: 'right',
-  },
-});
+  scanAndConnect = async () => {
+    console.log("scanAndConnecting");
+    this.state.manager.stopDeviceScan()
+    this.state.manager.startDeviceScan(null, {allowDuplicates: false}, (error, device) => {
+      this.setState({status: "Scanning"});
+
+      if (error) {
+        console.log("ERROR:");
+        console.log(error);
+        return
+      }
+      
+      if(device.name != null){  
+        // console.log(this.state.devices);
+        // let devices2 = this.state.devices.add(device.name);
+        let devices2 = new Set(this.state.devices).add(device.name);
+
+        let uniqueDevices2 = Array.from(devices2);
+        this.setState({
+          devices: devices2,
+          displayDevices: uniqueDevices2
+        });
+      }
+    });
+    console.log("scannedAndConnected");
+  };
+  
+  stopScan = () => {
+    this.setState({status: "Stopping"});
+    this.state.manager.stopDeviceScan();
+    this.setState({status: "Stopped"});
+  };
+
+  listDevices = () => {
+    console.log(this.state.devices);
+  }
+
+  resetDevices = () => {
+    this.setState({status: "Resetting"});
+    this.setState({devices: new Set(), displayDevices: []})
+    this.setState({status: "Resetted"});
+  }
+
+  render() {
+    return (
+      <View>
+        <Text>BLE</Text>
+        <Text>{this.state.status}</Text>
+        <Button title="Scan and Connect" onPress={this.scanAndConnect}/>
+        <Button title="Stop Scan" onPress={this.stopScan}/>
+        <Button title="List Devices" onPress={this.listDevices}/>
+        <Button title="Reset Devices" onPress={this.resetDevices}/>
+        <FlatList 
+          keyExtractor={(item, index) => item}
+          data={this.state.displayDevices}
+          renderItem={itemData => <Text>{itemData.item}</Text>}
+        />
+      </View>
+    );
+  }
+}
 
 export default App;
