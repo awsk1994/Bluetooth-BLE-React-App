@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import { TextInput, Alert, StyleSheet, View, List, Text, Button, FlatList, ToastAndroid, ScrollView, TouchableOpacity } from 'react-native';
 
 import { BleManager } from 'react-native-ble-plx';
+import { Buffer } from 'buffer/'
 
 class App extends Component {
   constructor() {
@@ -100,7 +101,7 @@ class App extends Component {
     console.log("onPressReadOp");
     try{
       let char = await this.state.characteristic.read();
-      console.log("Characteristics Read Value: " + char.value);
+      console.log("Characteristics Read Value: " + char.value.toString());
       this.setState({readValue: char.value});
     } catch(err){
       console.log("ERROR:");
@@ -109,7 +110,21 @@ class App extends Component {
   };
 
   onPressWriteOp = () => {
-    console.log("TODO!!!");
+    console.log("onPressWriteOp");
+    const writeValue = this.state.writeValue;
+
+    if (!writeValue) {
+      Alert.alert('请输入要写入的特征值')
+    }
+    const str = Buffer.from(writeValue, 'hex').toString('base64')
+    console.log('开始写入特征值：', str)
+    this.state.characteristic.writeWithResponse(str)
+      .then(() => {
+        Alert.alert('成功写入特征值', '现在点击读取特征值看看吧...')
+      })
+      .catch(err => {
+        console.log('写入特征值出错：', err)
+      })
   };
 
   // writeToDevice = () => {
@@ -140,7 +155,7 @@ class App extends Component {
             </TouchableOpacity>
             )}
           />
-          <Text h1>SERVICES:</Text>
+          <Text style={styles.h1}>SERVICES:</Text>
           <FlatList 
             keyExtractor={(item, index) => index.toString()}
             data={this.state.services}
@@ -152,7 +167,7 @@ class App extends Component {
             </TouchableOpacity>
             )}
           />
-          <Text h1>CHARACTERISTICS:</Text>
+          <Text style={styles.h1}>CHARACTERISTICS:</Text>
           <FlatList 
             keyExtractor={(item, index) => index.toString()}
             data={this.state.characteristics}
@@ -164,8 +179,7 @@ class App extends Component {
             </TouchableOpacity>
             )}
           />
-          <Text h1>OPERATIONS:</Text>
-          {/* <Text>{this.state.characteristic.uuid}</Text> */}
+          <Text style={styles.h1}>OPERATIONS:</Text>
           <Button type="primary" style={{ marginTop: 8 }} onPress={this.onPressReadOp} title="读取特征值"/>
           <TextInput
               style={styles.input}
@@ -189,7 +203,11 @@ const styles = StyleSheet.create({
     borderWidth: 1
   },
   input: {
-    height: 20
+    height: 40
+  },
+  h1: {
+    fontSize: 20,
+    fontWeight: "bold"
   }
 });
 
