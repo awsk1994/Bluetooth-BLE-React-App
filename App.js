@@ -110,7 +110,8 @@ class App extends Component {
     console.log("onPressReadOp");
     try{
       let char = await this.state.characteristic.read();
-      console.log("Characteristics Read Value: " + char.value.toString());
+      console.log("Characteristics Read Value: " + char.value);
+      ToastAndroid.show("Characteristics Read Value: " + char.value, ToastAndroid.SHORT);
       this.setState({readValue: char.value});
     } catch(err){
       console.log("ERROR:");
@@ -126,9 +127,11 @@ class App extends Component {
     if (!writeValue) {
       Alert.alert('请输入要写入的特征值')
     }
-    const str = Buffer.from(writeValue, 'hex').toString('base64')
-    console.log('开始写入特征值：', str)
-    this.state.characteristic.writeWithResponse(str)
+
+    console.log('开始写入特征值：', writeValue)
+    ToastAndroid.show('开始写入特征值：' + writeValue, ToastAndroid.SHORT);
+
+    this.state.characteristic.writeWithResponse(writeValue)
       .then(() => {
         Alert.alert('成功写入特征值', '现在点击读取特征值看看吧...')
       })
@@ -190,6 +193,9 @@ class App extends Component {
               <TouchableOpacity onPress = {() => {this.onPressCharacteristic(itemData.item)}}>
                 <View style={styles.card}>
                   <Text>{`UUID: ${itemData.item.uuid}`}</Text>
+                  <Text>{`isReadable: ${itemData.item.isReadable}`}</Text>
+                  <Text>{`isWritableWithResponse: ${itemData.item.isWritableWithResponse}`}</Text>
+                  <Text>{`isWritableWithoutResponse: ${itemData.item.isWritableWithoutResponse}`}</Text>
                 </View>
               </TouchableOpacity>
               )}
@@ -198,10 +204,11 @@ class App extends Component {
           }
           <Text style={styles.h1}>OPERATIONS:</Text>
           {this.state.characteristic && <View>
+            <Text>Read value is: {this.state.readValue }.</Text>
             <Button type="primary" style={{ marginTop: 8 }} onPress={this.onPressReadOp} title="读取特征值"/>
             <TextInput
                 style={styles.input}
-                placeholder="请输入特征值（十六进制字符串）"
+                placeholder="请输入特征值"
                 value={this.state.writeValue}
                 onChangeText={v => this.setState({ writeValue: v })}
               />
