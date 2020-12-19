@@ -1,10 +1,14 @@
 # Intro
-Using https://github.com/Polidea/react-native-ble-plx
+This app will be based on https://github.com/Polidea/react-native-ble-plx.
 
 # Features
  - Scan BLE devices
  - Read Service, Characteritics
  - Write characteristics
+
+# How to install? 
+ - (Android) react-native run-android
+ - (iOS) react-native run-ios (not tested this yet though)
 
 # Log
  - 12/18/2020
