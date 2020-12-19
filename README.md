@@ -7,8 +7,8 @@ This app will be based on https://github.com/Polidea/react-native-ble-plx.
  - Write characteristics
 
 # How to install? 
- - (Android) react-native run-android
- - (iOS) react-native run-ios (not tested this yet though)
+ 1. npm install
+ 2. (Android) react-native run-android or (iOS) react-native run-ios (not tested on iOS yet though)
 
 # Log
  - 12/18/2020
