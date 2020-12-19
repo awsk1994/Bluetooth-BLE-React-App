@@ -8,9 +8,9 @@ class App extends Component {
   constructor() {
     super();
     this.state = {
-      devices: [],
       status: null,
       scanning: false,
+      devices: [],
       services: [],
       characteristics: [],
       characteristic: null,
@@ -38,6 +38,7 @@ class App extends Component {
     if (error) {
       console.log("ERROR:");
       console.log(error);
+      ToastAndroid.show("ERROR: " + error, ToastAndroid.SHORT);
       return
     }
     
@@ -57,8 +58,15 @@ class App extends Component {
     console.log(this.state);
   }
 
-  resetDevices = () => {
-    this.setState({devices: []});
+  reset = () => {
+    this.setState({
+      devices: [],
+      services: [],
+      characteristics: [],
+      characteristic: null,
+      readValue: null,
+      writeValue: null
+    });
   }
 
   connectDevice = async (device) => {
@@ -79,6 +87,7 @@ class App extends Component {
     } catch(err){
       console.log("ERROR");
       console.log(err);
+      ToastAndroid.show("ERROR: " + err, ToastAndroid.SHORT);
     }
   };
 
@@ -106,6 +115,7 @@ class App extends Component {
     } catch(err){
       console.log("ERROR:");
       console.log(err);
+      ToastAndroid.show("ERROR: " + err, ToastAndroid.SHORT);
     }
   };
 
@@ -124,12 +134,9 @@ class App extends Component {
       })
       .catch(err => {
         console.log('写入特征值出错：', err)
+        ToastAndroid.show("ERROR: " + err, ToastAndroid.SHORT);
       })
   };
-
-  // writeToDevice = () => {
-  //   this.bleManager.writeCharacteristicWithResponseForDevice()
-  // }
 
   render() {
     return (
@@ -140,56 +147,68 @@ class App extends Component {
           <Button title="Scan Devices" onPress={this.scanDevices}/>
           <Button title="Stop Scan" onPress={this.stopScan}/>
           <Button title="Debug State" onPress={this.debugState}/>
-          <Button title="Reset Devices" onPress={this.resetDevices}/>
-          <FlatList 
-            keyExtractor={(item, index) => index.toString()}
-            data={this.state.devices}
-            renderItem={itemData => (
-            <TouchableOpacity onPress = {() => {this.connectDevice(itemData.item)}}>
-              <View style={styles.card}>
-                <Text>{itemData.item.id}</Text>
-                <Text>({itemData.item.name || itemData.item.localName})</Text>
-                <Text>(serviceUUIDs = {itemData.item.serviceUUIDs})</Text>
-                {/* <Text>(isConnectable = {itemData.item.isConnectable ? })</Text> */}
-              </View>
-            </TouchableOpacity>
-            )}
-          />
-          <Text style={styles.h1}>SERVICES:</Text>
-          <FlatList 
-            keyExtractor={(item, index) => index.toString()}
-            data={this.state.services}
-            renderItem={itemData => (
-            <TouchableOpacity onPress = {() => {this.onPressService(itemData.item)}}>
-              <View style={styles.card}>
-                <Text>{`UUID: ${itemData.item.uuid}`}</Text>
-              </View>
-            </TouchableOpacity>
-            )}
-          />
-          <Text style={styles.h1}>CHARACTERISTICS:</Text>
-          <FlatList 
-            keyExtractor={(item, index) => index.toString()}
-            data={this.state.characteristics}
-            renderItem={itemData => (
-            <TouchableOpacity onPress = {() => {this.onPressCharacteristic(itemData.item)}}>
-              <View style={styles.card}>
-                <Text>{`UUID: ${itemData.item.uuid}`}</Text>
-              </View>
-            </TouchableOpacity>
-            )}
-          />
-          <Text style={styles.h1}>OPERATIONS:</Text>
-          <Button type="primary" style={{ marginTop: 8 }} onPress={this.onPressReadOp} title="读取特征值"/>
-          <TextInput
-              style={styles.input}
-              placeholder="请输入特征值（十六进制字符串）"
-              value={this.state.writeValue}
-              onChangeText={v => this.setState({ writeValue: v })}
+          <Button title="Reset" onPress={this.reset}/>
+          <Text style={styles.h1}>DEVICES:</Text>
+          {this.state.scanning && <View>
+            <FlatList 
+              keyExtractor={(item, index) => index.toString()}
+              data={this.state.devices}
+              renderItem={itemData => (
+              <TouchableOpacity onPress = {() => {this.connectDevice(itemData.item)}}>
+                <View style={styles.card}>
+                  <Text>{itemData.item.id}</Text>
+                  <Text>({itemData.item.name || itemData.item.localName})</Text>
+                  <Text>(serviceUUIDs = {itemData.item.serviceUUIDs})</Text>
+                  {/* <Text>(isConnectable = {itemData.item.isConnectable ? })</Text> */}
+                </View>
+              </TouchableOpacity>
+              )}
             />
-          <Button type="primary" onPress={this.onPressWriteOp} title="写入特征值"/>
+          </View>
+          }
+          <Text style={styles.h1}>SERVICES:</Text>
+          {this.state.services && <View>
+            <FlatList 
+              keyExtractor={(item, index) => index.toString()}
+              data={this.state.services}
+              renderItem={itemData => (
+              <TouchableOpacity onPress = {() => {this.onPressService(itemData.item)}}>
+                <View style={styles.card}>
+                  <Text>{`UUID: ${itemData.item.uuid}`}</Text>
+                </View>
+              </TouchableOpacity>
+              )}
+            />
+          </View>
+          }
+          <Text style={styles.h1}>CHARACTERISTICS:</Text>
+          {this.state.characteristics && <View>
+            <FlatList 
+              keyExtractor={(item, index) => index.toString()}
+              data={this.state.characteristics}
+              renderItem={itemData => (
+              <TouchableOpacity onPress = {() => {this.onPressCharacteristic(itemData.item)}}>
+                <View style={styles.card}>
+                  <Text>{`UUID: ${itemData.item.uuid}`}</Text>
+                </View>
+              </TouchableOpacity>
+              )}
+            />
+          </View>
+          }
+          <Text style={styles.h1}>OPERATIONS:</Text>
+          {this.state.characteristic && <View>
+            <Button type="primary" style={{ marginTop: 8 }} onPress={this.onPressReadOp} title="读取特征值"/>
+            <TextInput
+                style={styles.input}
+                placeholder="请输入特征值（十六进制字符串）"
+                value={this.state.writeValue}
+                onChangeText={v => this.setState({ writeValue: v })}
+              />
+            <Button type="primary" onPress={this.onPressWriteOp} title="写入特征值"/>
+          </View>
+          }
         </ScrollView>
-
       </View>
     );
   }
