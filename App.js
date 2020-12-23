@@ -124,6 +124,7 @@ class App extends Component {
       readValue: null,
       writeValue: null,
       rawOp: false,
+      CRC: "",
       vMsgHeader: "00",
       vMsgPAttri: "00",
       vMsgSAttri1: "00",
@@ -240,15 +241,6 @@ class App extends Component {
     const str = Buffer.from(writeVal, 'hex').toString('base64')
     this.onPressWriteOp(str);
   }
-
-  onPressWriteHexOpAutoAppendCRC = (writeVal) => {
-    let CRC = sumHex(writeVal);
-    if(CRC == null){
-      return null;
-    } 
-    console.log("onPressWriteHexOpAutoAppendCRC | CRC = " + CRC);
-    this.onPressWriteHexOp(writeVal + CRC);
-  }
   
   onPressWriteStrOp = (writeVal) => {
     if (!writeVal) {
@@ -287,11 +279,19 @@ class App extends Component {
     this.onPressWriteHexOp(hexStr + CRCHex);
   }
   
+  onPressCalcCRC = (writeVal) => {
+    let CRC = sumHex(writeVal);
+    if(CRC == null){
+      return "00";
+    } 
+    console.log("onPressCalcCRC | CRC = " + CRC);
+    this.setState({"CRC": CRC});
+  };
+
   render() {
     return (
       <View style={styles.container}>
         <ScrollView>
-          {!this.state.rawOp && this.vultMsgOperations}
           <Text>BLE</Text>
           <Text>Scanning: {this.state.scanning.toString()}</Text>
           <View style={styles.b1}>
@@ -306,6 +306,7 @@ class App extends Component {
           <View style={styles.b1}>
             <Button title="Reset" onPress={this.reset}/>
           </View>
+
           <Text style={styles.h1}>DEVICES:</Text>
           {this.state.scanning && <View>
             <FlatList 
@@ -322,8 +323,8 @@ class App extends Component {
               </TouchableOpacity>
               )}
             />
-          </View>
-          }
+          </View>}
+
           <Text style={styles.h1}>SERVICES:</Text>
           {this.state.services && <View>
             <FlatList 
@@ -337,8 +338,8 @@ class App extends Component {
               </TouchableOpacity>
               )}
             />
-          </View>
-          }
+          </View>}
+
           <Text style={styles.h1}>CHARACTERISTICS:</Text>
           {this.state.characteristics && <View>
             <FlatList 
@@ -355,12 +356,9 @@ class App extends Component {
               </TouchableOpacity>
               )}
             />
-          </View>
-          }
-
+          </View>}
 
           <Text style={styles.h1}>OPERATIONS. Raw={this.state.rawOp.toString()}</Text>
-          
           {this.state.characteristic && this.state.rawOp && <View>
             <Text style={styles.h2}>Write Value:</Text>
             <TextInput
@@ -377,6 +375,12 @@ class App extends Component {
               <Button style={styles.b1} type="primary" onPress={() => this.onPressWriteStrOp(this.state.writeValue)} title="写入特征值 (string format, RAW)"/>
             </View>
 
+            <Text style={styles.h2}>CRC Value:</Text>
+            <Text>{this.state.CRC}</Text>
+            <View style={styles.b1}>
+              <Button style={styles.b1} type="primary" onPress={() => this.onPressCalcCRC(this.state.writeValue)} title="Calculate CRC"/>
+            </View>
+
             <Text style={styles.h2}>Read Value:</Text>
             <View style={styles.b1}>
               <Button type="primary" style={{ marginTop: 8 }} onPress={this.onPressReadOp} title="读取特征值"/>
@@ -384,9 +388,7 @@ class App extends Component {
             <Text>{`二进制: ${strToBinary(this.state.readValue)}`}</Text>
             <Text>{`十六进制: ${strToHex(this.state.readValue)}`}</Text>
             <Text>{`UTF8: ${strToUTF8(this.state.readValue)}`}</Text>
-          </View>
-          }
-
+          </View>}
           {this.state.characteristic && !this.state.rawOp && <View>
             <Text style={styles.h2}>Write Value:</Text>
             
@@ -447,8 +449,8 @@ class App extends Component {
           </View>}
           
           <Button color="#000000" title="Toggle Raw" onPress={() => this.setState({"rawOp": !this.state.rawOp})}/>
-
         </ScrollView>
+
       </View>
     );
   }
