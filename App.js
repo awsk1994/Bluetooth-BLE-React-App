@@ -5,8 +5,6 @@ import { BleManager } from 'react-native-ble-plx';
 import { Buffer } from 'buffer/'
 
 function strToBinary(str) {
-  console.log("strToBinary");
-  console.log(str);
   if(str == null){
     return "";
   }
@@ -21,8 +19,6 @@ function strToBinary(str) {
 }
 
 function strToHex(str){
-  console.log("strToHex");
-  console.log(str);
   if(str == null){
     return "";
   }
@@ -35,6 +31,85 @@ function strToUTF8(str){
   }
   str = (new Buffer(str, 'base64')).toString('utf8');
   return str;
+}
+
+function sumHex(hexStr){
+  if(hexStr == null){
+    return "";
+  };
+
+  if(hexStr.length % 2 != 0){
+    console.error("hexStr is not even length!");
+    return null;
+  }
+
+  let sum = 0;
+  for(let i = 0; i<hexStr.length; i += 2){
+    let singleHex = hexStr[i] + hexStr[i+1];
+    sum += parseInt(singleHex, 16);
+  };
+
+  let sumHexStr = sum.toString(16);
+  if(sumHexStr.length == 0){
+    return "00";
+  } else if(sumHexStr.length == 1){
+    return "0" + sumHexStr;
+  } else {
+    return sumHexStr.slice(-2);
+  };
+};
+
+function hexToFormatMsgJSX(msgStr){
+  if(msgStr == null){
+    return "";
+  };
+
+  if(msgStr.length % 2 != 0){
+    console.error("ERR: msgStr is not even length!");
+    return null;
+  };
+
+  if(msgStr.length < 10){
+    console.error("ERR: msgStr length < 10.");
+    return null;
+  }
+
+  msg = {
+    "header": msgStr[0] + msgStr[1],
+    "pAttri": msgStr[2] + msgStr[3],
+    "sAttri1": msgStr[4] + msgStr[5],
+    "sAttri2": msgStr[6] + msgStr[7],
+    "content": null,
+    "CRC": msgStr.slice(-2)
+  };
+
+  let contentStr = "";
+  for(let i=8; i<msgStr.length-2; i++){
+    contentStr += msgStr[i];
+  };
+  msg.content = contentStr;
+
+  return msg;
+};
+
+function strToFormatMsgJSX(inpt){
+  let strInpt = strToHex(inpt);
+  let msg = hexToFormatMsgJSX(strInpt);
+
+  if(msg == null){
+    return <Text>ERR</Text>;
+  }
+  
+  return (
+    <View>
+      <Text>Header: {msg.header}</Text>
+      <Text>pAttri: {msg.pAttri}</Text>
+      <Text>sAttri1: {msg.sAttri1}</Text>
+      <Text>sAttri2: {msg.sAttri2}</Text>
+      <Text>content: {msg.content}</Text>
+      <Text>CRC: {msg.CRC}</Text>
+    </View>
+  );
 }
 
 class App extends Component {
@@ -67,9 +142,8 @@ class App extends Component {
   };
 
   onScannedDevice = (error, device) => {
-    // console.log("onScannedDevice");
     if (error) {
-      console.log("ERROR:");
+      console.log("onScannedDevice | ERROR:");
       console.log(error);
       ToastAndroid.show("ERROR: " + error, ToastAndroid.SHORT);
       return
@@ -118,7 +192,7 @@ class App extends Component {
         { text: "Enter", onPress: () => this.onPressDevice(device)}
       ]);
     } catch(err){
-      console.log("ERROR");
+      console.log("connectDevice | ERROR");
       console.log(err);
       ToastAndroid.show("ERROR: " + err, ToastAndroid.SHORT);
     }
@@ -160,6 +234,15 @@ class App extends Component {
     const str = Buffer.from(writeVal, 'hex').toString('base64')
     this.onPressWriteOp(str);
   }
+
+  onPressWriteHexOpAutoAppendCRC = (writeVal) => {
+    let CRC = sumHex(writeVal);
+    if(CRC == null){
+      return null;
+    } 
+    console.log("onPressWriteHexOpAutoAppendCRC | CRC = " + CRC);
+    this.onPressWriteHexOp(writeVal + CRC);
+  }
   
   onPressWriteStrOp = (writeVal) => {
     if (!writeVal) {
@@ -183,18 +266,12 @@ class App extends Component {
   };
 
   onPressSampleWriteA = () => {
-    // TODO
-    // const str = "...";
-    // this.onPressWriteHexOp(str);
-  };
-
-  onPressSampleWriteB = () => {
-    // TODO
+    this.onPressWriteHexOp("A00112000068656c6c6fc7");
   };
   
   render() {
     return (
-      <View>
+      <View style={styles.container}>
         <ScrollView>
           <Text>BLE</Text>
           <Text>Scanning: {this.state.scanning.toString()}</Text>
@@ -261,15 +338,8 @@ class App extends Component {
             />
           </View>
           }
-          <Text style={styles.h1}>OPERATIONS:</Text>
+          <Text style={styles.h1}>OPERATIONS (RAW)</Text>
           {this.state.characteristic && <View>
-            <Text style={styles.h2}>Read Value:</Text>
-            <Text>{`二进制: ${strToBinary(this.state.readValue)}`}</Text>
-            <Text>{`十六进制: ${strToHex(this.state.readValue)}`}</Text>
-            <Text>{`UTF8: ${strToUTF8(this.state.readValue)}`}</Text>
-            <View style={styles.b1}>
-              <Button type="primary" style={{ marginTop: 8 }} onPress={this.onPressReadOp} title="读取特征值"/>
-            </View>
             <Text style={styles.h2}>Write Value:</Text>
             <TextInput
                 style={styles.input}
@@ -278,17 +348,26 @@ class App extends Component {
                 onChangeText={v => this.setState({ writeValue: v })}
               />
             <View style={styles.b1}>
-              <Button style={styles.b1} type="primary" onPress={() => this.onPressWriteHexOp(this.state.writeValue)} title="写入特征值 (hex format)"/>
+              <Button style={styles.b1} type="primary" onPress={() => this.onPressWriteHexOp(this.state.writeValue)} title="写入特征值 (hex format, RAW)"/>
             </View>
             <View style={styles.b1}>
-              <Button style={styles.b1} type="primary" onPress={() => this.onPressWriteStrOp(this.state.writeValue)} title="写入特征值 (string format)"/>
+              <Button style={styles.b1} type="primary" onPress={() => this.onPressWriteHexOpAutoAppendCRC(this.state.writeValue)} title="写入特征值 (hex format, RAW, auto append CRC)"/>
+            </View>
+            <View style={styles.b1}>
+              <Button style={styles.b1} type="primary" onPress={() => this.onPressWriteStrOp(this.state.writeValue)} title="写入特征值 (string format, RAW)"/>
             </View>
             <View style={styles.b1}>
               <Button style={styles.b1} type="primary" onPress={this.onPressSampleWriteA} title="Sample write A"/>
             </View>
+            <Text style={styles.h2}>Read Value:</Text>
             <View style={styles.b1}>
-              <Button style={styles.b1} type="primary" onPress={this.onPressSampleWriteB} title="Sample write B"/>
+              <Button type="primary" style={{ marginTop: 8 }} onPress={this.onPressReadOp} title="读取特征值"/>
             </View>
+            <Text>{`二进制: ${strToBinary(this.state.readValue)}`}</Text>
+            <Text>{`十六进制: ${strToHex(this.state.readValue)}`}</Text>
+            <Text>{`UTF8: ${strToUTF8(this.state.readValue)}`}</Text>
+            <Text style={styles.h2}>Formatted:</Text>
+            {strToFormatMsgJSX(this.state.readValue)}
           </View>
           }
         </ScrollView>
@@ -317,6 +396,9 @@ const styles = StyleSheet.create({
   },
   b1: {
     margin: 10
+  },
+  container: {
+    margin: 20
   }
 });
 
