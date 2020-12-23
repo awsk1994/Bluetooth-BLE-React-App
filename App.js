@@ -1,6 +1,5 @@
 import React, { Component } from 'react';
-import { TextInput, Alert, StyleSheet, View, List, Text, Button, FlatList, ToastAndroid, ScrollView, TouchableOpacity } from 'react-native';
-
+import { TextInput, Alert, StyleSheet, View, Text, Button, FlatList, ToastAndroid, ScrollView, TouchableOpacity } from 'react-native';
 import { BleManager } from 'react-native-ble-plx';
 import { Buffer } from 'buffer/'
 
@@ -123,7 +122,14 @@ class App extends Component {
       characteristics: [],
       characteristic: null,
       readValue: null,
-      writeValue: null
+      writeValue: null,
+      rawOp: false,
+      vMsgHeader: "00",
+      vMsgPAttri: "00",
+      vMsgSAttri1: "00",
+      vMsgSAttri2: "00",
+      vMsgContent: "00",
+      vMsgCRC: "00"
     };
     const manager = this.bleManager = new BleManager();
   };
@@ -268,11 +274,24 @@ class App extends Component {
   onPressSampleWriteA = () => {
     this.onPressWriteHexOp("A00112000068656c6c6fc7");
   };
+
+  onPressWriteVMsg = () => {
+    const hexStr = this.state.vMsgHeader 
+    + this.state.vMsgPAttri 
+    + this.state.vMsgSAttri1
+    + this.state.vMsgSAttri2
+    + this.state.vMsgContent;
+
+    const CRCHex = sumHex(hexStr);
+    console.log("write VMsg | " + (hexStr + CRCHex));
+    this.onPressWriteHexOp(hexStr + CRCHex);
+  }
   
   render() {
     return (
       <View style={styles.container}>
         <ScrollView>
+          {!this.state.rawOp && this.vultMsgOperations}
           <Text>BLE</Text>
           <Text>Scanning: {this.state.scanning.toString()}</Text>
           <View style={styles.b1}>
@@ -338,8 +357,11 @@ class App extends Component {
             />
           </View>
           }
-          <Text style={styles.h1}>OPERATIONS (RAW)</Text>
-          {this.state.characteristic && <View>
+
+
+          <Text style={styles.h1}>OPERATIONS. Raw={this.state.rawOp.toString()}</Text>
+          
+          {this.state.characteristic && this.state.rawOp && <View>
             <Text style={styles.h2}>Write Value:</Text>
             <TextInput
                 style={styles.input}
@@ -350,15 +372,11 @@ class App extends Component {
             <View style={styles.b1}>
               <Button style={styles.b1} type="primary" onPress={() => this.onPressWriteHexOp(this.state.writeValue)} title="写入特征值 (hex format, RAW)"/>
             </View>
-            <View style={styles.b1}>
-              <Button style={styles.b1} type="primary" onPress={() => this.onPressWriteHexOpAutoAppendCRC(this.state.writeValue)} title="写入特征值 (hex format, RAW, auto append CRC)"/>
-            </View>
+
             <View style={styles.b1}>
               <Button style={styles.b1} type="primary" onPress={() => this.onPressWriteStrOp(this.state.writeValue)} title="写入特征值 (string format, RAW)"/>
             </View>
-            <View style={styles.b1}>
-              <Button style={styles.b1} type="primary" onPress={this.onPressSampleWriteA} title="Sample write A"/>
-            </View>
+
             <Text style={styles.h2}>Read Value:</Text>
             <View style={styles.b1}>
               <Button type="primary" style={{ marginTop: 8 }} onPress={this.onPressReadOp} title="读取特征值"/>
@@ -366,10 +384,70 @@ class App extends Component {
             <Text>{`二进制: ${strToBinary(this.state.readValue)}`}</Text>
             <Text>{`十六进制: ${strToHex(this.state.readValue)}`}</Text>
             <Text>{`UTF8: ${strToUTF8(this.state.readValue)}`}</Text>
-            <Text style={styles.h2}>Formatted:</Text>
-            {strToFormatMsgJSX(this.state.readValue)}
           </View>
           }
+
+          {this.state.characteristic && !this.state.rawOp && <View>
+            <Text style={styles.h2}>Write Value:</Text>
+            
+            <Text style={styles.h2}>Build your own:</Text>
+            <Text>帆头</Text>
+            <TextInput
+                style={styles.input}
+                placeholder="帆头｜A0=发送，B0=答应"
+                value={this.state.vMsgHeader}
+                onChangeText={v => this.setState({ vMsgHeader: v })}
+              />
+            
+            <Text>主属性</Text>
+            <TextInput
+                style={styles.input}
+                placeholder="主属性: 01-05"
+                value={this.state.vMsgPAttri}
+                onChangeText={v => this.setState({ vMsgPAttri: v })}
+              />
+
+            <Text>次属性1</Text>
+            <TextInput
+                style={styles.input}
+                placeholder="次属性1"
+                value={this.state.vMsgSAttri1}
+                onChangeText={v => this.setState({ vMsgSAttri1: v })}
+              />
+
+            <Text>次属性2</Text>
+            <TextInput
+                style={styles.input}
+                placeholder="次属性1"
+                value={this.state.vMsgSAttri2}
+                onChangeText={v => this.setState({ vMsgSAttri2: v })}
+              />
+            
+            <Text>内容</Text>
+            <TextInput
+                style={styles.input}
+                placeholder="内容"
+                value={this.state.vMsgContent}
+                onChangeText={v => this.setState({ vMsgContent: v })}
+              />
+
+            <View style={styles.b1}>
+              <Button style={styles.b1} type="primary" onPress={this.onPressWriteVMsg} title="Send Vultant Msg"/>
+            </View>
+            <View style={styles.b1}>
+              <Button type="primary" onPress={this.onPressSampleWriteA} title="Write sample msg A"/>
+            </View>
+
+            <Text style={styles.h2}>Read Message:</Text>
+            <View style={styles.b1}>
+              <Button type="primary" style={{ marginTop: 8 }} onPress={this.onPressReadOp} title="读取特征值"/>
+            </View>
+            {strToFormatMsgJSX(this.state.readValue)}
+            <Text>{`十六进制: ${strToHex(this.state.readValue)}`}</Text>
+          </View>}
+          
+          <Button color="#000000" title="Toggle Raw" onPress={() => this.setState({"rawOp": !this.state.rawOp})}/>
+
         </ScrollView>
       </View>
     );
