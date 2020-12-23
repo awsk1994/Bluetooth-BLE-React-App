@@ -4,6 +4,39 @@ import { TextInput, Alert, StyleSheet, View, List, Text, Button, FlatList, Toast
 import { BleManager } from 'react-native-ble-plx';
 import { Buffer } from 'buffer/'
 
+function strToBinary(str) {
+  console.log("strToBinary");
+  console.log(str);
+  if(str == null){
+    return "";
+  }
+  str = str.toString();
+  const result = [];
+  const list = str.split("");
+  for (let i = 0; i < list.length; i++) {
+    const str = list[i].charCodeAt().toString(2);
+    result.push(str);
+  }
+  return result.join("");
+}
+
+function strToHex(str){
+  console.log("strToHex");
+  console.log(str);
+  if(str == null){
+    return "";
+  }
+  return Buffer.from(str, 'base64').toString('hex');
+}
+
+function strToUTF8(str){
+  if(str == null){
+    return "";
+  }
+  str = (new Buffer(str, 'base64')).toString('utf8');
+  return str;
+}
+
 class App extends Component {
   constructor() {
     super();
@@ -120,18 +153,26 @@ class App extends Component {
     }
   };
 
-  onPressWriteOp = () => {
-    console.log("onPressWriteOp");
-    const writeValue = this.state.writeValue;
-
-    if (!writeValue) {
+  onPressWriteHexOp = (writeVal) => {
+    if (!writeVal) {
       Alert.alert('请输入要写入的特征值')
     }
+    const str = Buffer.from(writeVal, 'hex').toString('base64')
+    this.onPressWriteOp(str);
+  }
+  
+  onPressWriteStrOp = (writeVal) => {
+    if (!writeVal) {
+      Alert.alert('请输入要写入的特征值')
+    }
+    const str = Buffer.from(writeVal, 'utf8').toString('base64');
+    this.onPressWriteOp(str);
+  };
 
-    console.log('开始写入特征值：', writeValue)
-    ToastAndroid.show('开始写入特征值：' + writeValue, ToastAndroid.SHORT);
+  onPressWriteOp = (msg) => {
+    ToastAndroid.show('开始写入特征值：' + msg, ToastAndroid.SHORT);
 
-    this.state.characteristic.writeWithResponse(writeValue)
+    this.state.characteristic.writeWithResponse(msg)
       .then(() => {
         Alert.alert('成功写入特征值', '现在点击读取特征值看看吧...')
       })
@@ -141,16 +182,34 @@ class App extends Component {
       })
   };
 
+  onPressSampleWriteA = () => {
+    // TODO
+    // const str = "...";
+    // this.onPressWriteHexOp(str);
+  };
+
+  onPressSampleWriteB = () => {
+    // TODO
+  };
+  
   render() {
     return (
       <View>
         <ScrollView>
           <Text>BLE</Text>
           <Text>Scanning: {this.state.scanning.toString()}</Text>
-          <Button title="Scan Devices" onPress={this.scanDevices}/>
-          <Button title="Stop Scan" onPress={this.stopScan}/>
-          <Button title="Debug State" onPress={this.debugState}/>
-          <Button title="Reset" onPress={this.reset}/>
+          <View style={styles.b1}>
+            <Button title="Scan Devices" onPress={this.scanDevices}/>
+          </View>
+          <View style={styles.b1}>
+            <Button title="Stop Scan" onPress={this.stopScan}/>
+          </View>
+          <View style={styles.b1}>
+            <Button title="Debug State" onPress={this.debugState}/>
+          </View>
+          <View style={styles.b1}>
+            <Button title="Reset" onPress={this.reset}/>
+          </View>
           <Text style={styles.h1}>DEVICES:</Text>
           {this.state.scanning && <View>
             <FlatList 
@@ -204,15 +263,32 @@ class App extends Component {
           }
           <Text style={styles.h1}>OPERATIONS:</Text>
           {this.state.characteristic && <View>
-            <Text>Read value is: {this.state.readValue }.</Text>
-            <Button type="primary" style={{ marginTop: 8 }} onPress={this.onPressReadOp} title="读取特征值"/>
+            <Text style={styles.h2}>Read Value:</Text>
+            <Text>{`二进制: ${strToBinary(this.state.readValue)}`}</Text>
+            <Text>{`十六进制: ${strToHex(this.state.readValue)}`}</Text>
+            <Text>{`UTF8: ${strToUTF8(this.state.readValue)}`}</Text>
+            <View style={styles.b1}>
+              <Button type="primary" style={{ marginTop: 8 }} onPress={this.onPressReadOp} title="读取特征值"/>
+            </View>
+            <Text style={styles.h2}>Write Value:</Text>
             <TextInput
                 style={styles.input}
                 placeholder="请输入特征值"
                 value={this.state.writeValue}
                 onChangeText={v => this.setState({ writeValue: v })}
               />
-            <Button type="primary" onPress={this.onPressWriteOp} title="写入特征值"/>
+            <View style={styles.b1}>
+              <Button style={styles.b1} type="primary" onPress={() => this.onPressWriteHexOp(this.state.writeValue)} title="写入特征值 (hex format)"/>
+            </View>
+            <View style={styles.b1}>
+              <Button style={styles.b1} type="primary" onPress={() => this.onPressWriteStrOp(this.state.writeValue)} title="写入特征值 (string format)"/>
+            </View>
+            <View style={styles.b1}>
+              <Button style={styles.b1} type="primary" onPress={this.onPressSampleWriteA} title="Sample write A"/>
+            </View>
+            <View style={styles.b1}>
+              <Button style={styles.b1} type="primary" onPress={this.onPressSampleWriteB} title="Sample write B"/>
+            </View>
           </View>
           }
         </ScrollView>
@@ -234,6 +310,13 @@ const styles = StyleSheet.create({
   h1: {
     fontSize: 20,
     fontWeight: "bold"
+  },
+  h2: {
+    fontSize: 15,
+    fontWeight: "bold"
+  },
+  b1: {
+    margin: 10
   }
 });
 
