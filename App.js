@@ -101,11 +101,11 @@ function strToFormatMsgJSX(inpt){
   
   return (
     <View>
-      <Text>Header: {msg.header}</Text>
-      <Text>pAttri: {msg.pAttri}</Text>
-      <Text>sAttri1: {msg.sAttri1}</Text>
-      <Text>sAttri2: {msg.sAttri2}</Text>
-      <Text>content: {msg.content}</Text>
+      <Text>帆头: {msg.header}</Text>
+      <Text>主属性: {msg.pAttri}</Text>
+      <Text>次属性1: {msg.sAttri1}</Text>
+      <Text>次属性2: {msg.sAttri2}</Text>
+      <Text>内容: {msg.content}</Text>
       <Text>CRC: {msg.CRC}</Text>
     </View>
   );
@@ -186,7 +186,7 @@ class App extends Component {
   connectDevice = async (device) => {
     try{
       this.stopScan() // Stop Scanning
-      ToastAndroid.show("Connecting to Device...", ToastAndroid.SHORT);
+      ToastAndroid.show("链接中（Connecting to Device）...", ToastAndroid.SHORT);
       console.group("Connecting to Device.");
       await device.connect();
       console.log('Connected to Device：', device.id)
@@ -194,9 +194,9 @@ class App extends Component {
       console.log('Getting services and characteristics...');
       console.log(serviceAndChar);
   
-      Alert.alert('Connected to Device', null, [
-        { text: 'Cancel' },
-        { text: "Enter", onPress: () => this.onPressDevice(device)}
+      Alert.alert('成功链接到设备（Connected to Device）', null, [
+        { text: '取消' },
+        { text: "继续", onPress: () => this.onPressDevice(device)}
       ]);
     } catch(err){
       console.log("connectDevice | ERROR");
@@ -292,22 +292,22 @@ class App extends Component {
     return (
       <View style={styles.container}>
         <ScrollView>
-          <Text>BLE</Text>
-          <Text>Scanning: {this.state.scanning.toString()}</Text>
+          <Text>Vultant Testing App</Text>
+          <Text>扫描中: {this.state.scanning.toString()}</Text>
           <View style={styles.b1}>
-            <Button title="Scan Devices" onPress={this.scanDevices}/>
+            <Button title="扫描设备(start scanning)" onPress={this.scanDevices}/>
           </View>
           <View style={styles.b1}>
-            <Button title="Stop Scan" onPress={this.stopScan}/>
+            <Button title="停止扫描(stop scanning)" onPress={this.stopScan}/>
           </View>
           <View style={styles.b1}>
-            <Button title="Debug State" onPress={this.debugState}/>
+            <Button title="Debug" onPress={this.debugState}/>
           </View>
           <View style={styles.b1}>
-            <Button title="Reset" onPress={this.reset}/>
+            <Button title="重置(reset)" onPress={this.reset}/>
           </View>
 
-          <Text style={styles.h1}>DEVICES:</Text>
+          <Text style={styles.h1}>设备（Devices）:</Text>
           {this.state.scanning && <View>
             <FlatList 
               keyExtractor={(item, index) => index.toString()}
@@ -325,7 +325,7 @@ class App extends Component {
             />
           </View>}
 
-          <Text style={styles.h1}>SERVICES:</Text>
+          <Text style={styles.h1}>服务（Services）:</Text>
           {this.state.services && <View>
             <FlatList 
               keyExtractor={(item, index) => index.toString()}
@@ -340,7 +340,7 @@ class App extends Component {
             />
           </View>}
 
-          <Text style={styles.h1}>CHARACTERISTICS:</Text>
+          <Text style={styles.h1}>特征（Characteristics）:</Text>
           {this.state.characteristics && <View>
             <FlatList 
               keyExtractor={(item, index) => index.toString()}
@@ -349,39 +349,40 @@ class App extends Component {
               <TouchableOpacity onPress = {() => {this.onPressCharacteristic(itemData.item)}}>
                 <View style={styles.card}>
                   <Text>{`UUID: ${itemData.item.uuid}`}</Text>
-                  <Text>{`isReadable: ${itemData.item.isReadable}`}</Text>
-                  <Text>{`isWritableWithResponse: ${itemData.item.isWritableWithResponse}`}</Text>
-                  <Text>{`isWritableWithoutResponse: ${itemData.item.isWritableWithoutResponse}`}</Text>
+                  <Text>{`可读（isReadable）: ${itemData.item.isReadable}`}</Text>
+                  <Text>{`可写有回应（isWritableWithResponse）: ${itemData.item.isWritableWithResponse}`}</Text>
+                  <Text>{`可写没回应（isWritableWithoutResponse）: ${itemData.item.isWritableWithoutResponse}`}</Text>
                 </View>
               </TouchableOpacity>
               )}
             />
           </View>}
 
-          <Text style={styles.h1}>OPERATIONS. Raw={this.state.rawOp.toString()}</Text>
+          <Text style={styles.h1}>操作（Operations), Raw={this.state.rawOp.toString()}</Text>
           {this.state.characteristic && this.state.rawOp && <View>
-            <Text style={styles.h2}>Write Value:</Text>
+            <Text style={styles.h2}>写特征:</Text>
             <TextInput
                 style={styles.input}
                 placeholder="请输入特征值"
                 value={this.state.writeValue}
                 onChangeText={v => this.setState({ writeValue: v })}
               />
+            
             <View style={styles.b1}>
-              <Button style={styles.b1} type="primary" onPress={() => this.onPressWriteHexOp(this.state.writeValue)} title="写入特征值 (hex format, RAW)"/>
+              <Button style={styles.b1} type="primary" onPress={() => this.onPressWriteHexOp(this.state.writeValue)} title="写入特征值 (hex格式)"/>
             </View>
 
             <View style={styles.b1}>
-              <Button style={styles.b1} type="primary" onPress={() => this.onPressWriteStrOp(this.state.writeValue)} title="写入特征值 (string format, RAW)"/>
+              <Button style={styles.b1} type="primary" onPress={() => this.onPressWriteStrOp(this.state.writeValue)} title="写入特征值 (utf8格式)"/>
             </View>
 
-            <Text style={styles.h2}>CRC Value:</Text>
+            <Text style={styles.h2}>CRC值:</Text>
             <Text>{this.state.CRC}</Text>
             <View style={styles.b1}>
-              <Button style={styles.b1} type="primary" onPress={() => this.onPressCalcCRC(this.state.writeValue)} title="Calculate CRC"/>
+              <Button style={styles.b1} type="primary" onPress={() => this.onPressCalcCRC(this.state.writeValue)} title="计算CRC"/>
             </View>
 
-            <Text style={styles.h2}>Read Value:</Text>
+            <Text style={styles.h2}>读取特征值：</Text>
             <View style={styles.b1}>
               <Button type="primary" style={{ marginTop: 8 }} onPress={this.onPressReadOp} title="读取特征值"/>
             </View>
@@ -389,10 +390,10 @@ class App extends Component {
             <Text>{`十六进制: ${strToHex(this.state.readValue)}`}</Text>
             <Text>{`UTF8: ${strToUTF8(this.state.readValue)}`}</Text>
           </View>}
+          
           {this.state.characteristic && !this.state.rawOp && <View>
-            <Text style={styles.h2}>Write Value:</Text>
+            <Text style={styles.h2}>写特征值:</Text>
             
-            <Text style={styles.h2}>Build your own:</Text>
             <Text>帆头</Text>
             <TextInput
                 style={styles.input}
@@ -434,13 +435,13 @@ class App extends Component {
               />
 
             <View style={styles.b1}>
-              <Button style={styles.b1} type="primary" onPress={this.onPressWriteVMsg} title="Send Vultant Msg"/>
+              <Button style={styles.b1} type="primary" onPress={this.onPressWriteVMsg} title="写特征"/>
             </View>
             <View style={styles.b1}>
-              <Button type="primary" onPress={this.onPressSampleWriteA} title="Write sample msg A"/>
+              <Button type="primary" onPress={this.onPressSampleWriteA} title="发送报文例子A"/>
             </View>
 
-            <Text style={styles.h2}>Read Message:</Text>
+            <Text style={styles.h2}>读取特征值:</Text>
             <View style={styles.b1}>
               <Button type="primary" style={{ marginTop: 8 }} onPress={this.onPressReadOp} title="读取特征值"/>
             </View>
