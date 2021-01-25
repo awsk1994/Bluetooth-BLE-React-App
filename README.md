@@ -10,6 +10,50 @@ This app will be based on https://github.com/Polidea/react-native-ble-plx.
  1. npm install
  2. (Android) react-native run-android or (iOS) react-native run-ios (not tested on iOS yet though)
 
+# Settings change to make app work (Android)
+
+https://github.com/awsk1994/Bluetooth-BLE-React-App/commit/2352ad01c676418b62d4ee249b4c72b48d6a1882#diff-f60ed56a9c8275894022fe5a7a1625c33bdb55b729bb4e38962af4d1613eda25
+
+```js
+// android/app/src/main/AndroidManifest.xml
+<uses-permission android:name="android.permission.BLUETOOTH_ADMIN"/>
+<uses-permission android:name="android.permission.BLUETOOTH"/>
+<uses-permission-sdk-23 android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+
+<uses-feature android:name="android.hardware.bluetooth_le" android:required="true"/>
+```
+
+```js
+// android/build.gradle
+buildscript {
+    ext {
+        buildToolsVersion = "29.0.2"
+        minSdkVersion = 18  // change this from 16 to 18
+        compileSdkVersion = 29
+        targetSdkVersion = 29
+    }
+````
+
+```js
+// android/settings.gradle
+rootProject.name = 'VultantGlassesAlpha'
+include ':react-native-ble-plx'   // Add this
+project(':react-native-ble-plx').projectDir = new File(rootProject.projectDir, '../node_modules/react-native-ble-plx/android')  // Add this
+apply from: file("../node_modules/@react-native-community/cli-platform-android/native_modules.gradle"); applyNativeModulesSettingsGradle(settings)
+include ':app'
+```
+
+# Settings change to make app work (iOS) - Untested/Verified
+```js
+// ios/Podfile
+  use_react_native!(:path => config["reactNativePath"])
+
+  pod 'react-native-ble-plx', :path => '../node_modules/react-native-ble-plx' // Add this
+
+  target 'VultantGlassesAlphaTests' do
+    inherit! :complete
+```
+
 # Create aab
 https://reactnative.dev/docs/signed-apk-android
 
